@@ -60,12 +60,12 @@
         </thead>
         <tbody>
         <#list topics as t>
-              <tr>
-                  <td><a href="/topic/${t.name}">${t.name}</a></td>
-                  <td>${t.partitions?size}</td>
-                  <td>${t.getLeaderPartitions(broker.id)?size}</td>
-                  <td class="leader-partitions"><#list t.getLeaderPartitions(broker.id) as p>${p.id}<#sep>,</#list></td>
-              </tr>
+        <tr>
+            <td><a href="/kafdrop/topic/${t.name}">${t.name}</a></td>
+            <td>${t.partitions?size}</td>
+            <td>${t.getLeaderPartitions(broker.id)?size}</td>
+            <td class="leader-partitions"><#list t.getLeaderPartitions(broker.id) as p>${p.id}<#sep>,</#list></td>
+        </tr>
         </#list>
         </tbody>
     </table>

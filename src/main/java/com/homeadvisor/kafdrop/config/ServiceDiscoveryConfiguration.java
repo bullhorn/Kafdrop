@@ -18,10 +18,23 @@
 
 package com.homeadvisor.kafdrop.config;
 
-import com.homeadvisor.kafdrop.util.JmxUtils;
+import java.beans.Introspector;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.utils.EnsurePath;
-import org.apache.curator.x.discovery.*;
+import org.apache.curator.x.discovery.ServiceDiscovery;
+import org.apache.curator.x.discovery.ServiceDiscoveryBuilder;
+import org.apache.curator.x.discovery.ServiceInstance;
+import org.apache.curator.x.discovery.ServiceInstanceBuilder;
+import org.apache.curator.x.discovery.UriSpec;
 import org.apache.curator.x.discovery.details.JsonInstanceSerializer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -37,127 +50,107 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
 import org.springframework.util.ClassUtils;
 
-import java.beans.Introspector;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import com.homeadvisor.kafdrop.util.JmxUtils;
 
 @Configuration
 @ConditionalOnProperty("curator.discovery.enabled")
-public class ServiceDiscoveryConfiguration
-{
-   @Autowired
-   private Environment environment;
+public class ServiceDiscoveryConfiguration {
+    @Autowired
+    private Environment environment;
 
-   @Autowired
-   private InfoEndpoint infoEndpoint;
+    @Autowired
+    private InfoEndpoint infoEndpoint;
 
-   @Value("${spring.jmx.default_domain}")
-   private String jmxDomain;
+    @Value("${spring.jmx.default_domain}")
+    private String jmxDomain;
 
-   @Bean(initMethod = "start", destroyMethod = "close")
-   public ServiceDiscovery curatorServiceDiscovery(
-      CuratorFramework curatorFramework,
-      @Value("${curator.discovery.basePath:/homeadvisor/services}") String basePath) throws Exception
-   {
-      final Class payloadClass = Object.class;
-      new EnsurePath(basePath).ensure(curatorFramework.getZookeeperClient());
-      return ServiceDiscoveryBuilder.builder(payloadClass)
-         .client(curatorFramework)
-         .basePath(basePath)
-         .serializer(new JsonInstanceSerializer(payloadClass))
-         .build();
-   }
+    @Bean(initMethod = "start", destroyMethod = "close")
+    public ServiceDiscovery curatorServiceDiscovery(
+            CuratorFramework curatorFramework,
+            @Value("${curator.discovery.basePath:/homeadvisor/services}") String basePath) throws Exception {
+        final Class payloadClass = Object.class;
+        new EnsurePath(basePath).ensure(curatorFramework.getZookeeperClient());
+        return ServiceDiscoveryBuilder.builder(payloadClass)
+                .client(curatorFramework)
+                .basePath(basePath)
+                .serializer(new JsonInstanceSerializer(payloadClass))
+                .build();
+    }
 
 
-   public Map<String, Object> serviceDetails(Integer serverPort)
-   {
-      Map<String, Object> details = new LinkedHashMap<>();
+    public Map<String, Object> serviceDetails(Integer serverPort) {
+        Map<String, Object> details = new LinkedHashMap<>();
 
-      Optional.ofNullable(infoEndpoint.invoke())
-         .ifPresent(infoMap -> Optional.ofNullable((Map<String, Object>) infoMap.get("build"))
-            .ifPresent(buildInfo -> {
-               details.put("serviceName", buildInfo.get("artifact"));
-               details.put("serviceDescription", buildInfo.get("description"));
-               details.put("serviceVersion", buildInfo.get("version"));
-            }));
+        Optional.ofNullable(infoEndpoint.invoke())
+                .ifPresent(infoMap -> Optional.ofNullable((Map<String, Object>) infoMap.get("build"))
+                        .ifPresent(buildInfo -> {
+                            details.put("serviceName", buildInfo.get("artifact"));
+                            details.put("serviceDescription", buildInfo.get("description"));
+                            details.put("serviceVersion", buildInfo.get("version"));
+                        }));
 
-      final String name = (String) details.getOrDefault("serviceName", "kafdrop");
+        final String name = (String) details.getOrDefault("serviceName", "kafdrop");
 
-      String host = null;
-      try
-      {
-         host = InetAddress.getLocalHost().getHostName();
-      }
-      catch (UnknownHostException e)
-      {
-         host = "<unknown>";
-      }
+        String host = null;
+        try {
+            host = InetAddress.getLocalHost().getHostName();
+        } catch (UnknownHostException e) {
+            host = "<unknown>";
+        }
 
-      details.put("id", Stream.of(name, host, UUID.randomUUID().toString()).collect(Collectors.joining("_")));
-      details.put("name", name);
-      details.put("host", host);
-      details.put("jmxPort", JmxUtils.getJmxPort(environment));
-      details.put("jmxHealthMBean",
-                  jmxDomain + ":name=" + healthCheckBeanName() + ",type=" + ClassUtils.getShortName(HealthCheckConfiguration.HealthCheck.class));
-      details.put("port", serverPort);
+        details.put("id", Stream.of(name, host, UUID.randomUUID().toString()).collect(Collectors.joining("_")));
+        details.put("name", name);
+        details.put("host", host);
+        details.put("jmxPort", JmxUtils.getJmxPort(environment));
+        details.put("jmxHealthMBean",
+                jmxDomain + ":name=" + healthCheckBeanName() + ",type=" + ClassUtils.getShortName(HealthCheckConfiguration.HealthCheck.class));
+        details.put("port", serverPort);
 
-      return details;
-   }
+        return details;
+    }
 
-   private String healthCheckBeanName()
-   {
-      String shortClassName = ClassUtils.getShortName(HealthCheckConfiguration.HealthCheck.class);
-      return Introspector.decapitalize(shortClassName);
-   }
+    private String healthCheckBeanName() {
+        String shortClassName = ClassUtils.getShortName(HealthCheckConfiguration.HealthCheck.class);
+        return Introspector.decapitalize(shortClassName);
+    }
 
-   @Bean
-   @ConditionalOnMissingBean
-   @ConditionalOnWebApplication
-   public ServiceInstance serviceInstance(EmbeddedWebApplicationContext webContext,
-                                          ServiceDiscovery serviceDiscovery)
-      throws Exception
-   {
-      final Map<String, Object> details = serviceDetails(getServicePort(webContext));
+    @Bean
+    @ConditionalOnMissingBean
+    @ConditionalOnWebApplication
+    public ServiceInstance serviceInstance(EmbeddedWebApplicationContext webContext,
+                                           ServiceDiscovery serviceDiscovery)
+            throws Exception {
+        //todo This is where we hard-code the port
+        final Map<String, Object> details = serviceDetails(2181);
 
-      final ServiceInstanceBuilder<Map<String, Object>> builder = ServiceInstance.builder();
-      Optional.ofNullable(details.get("port")).ifPresent(port -> builder.port((Integer) port));
+        final ServiceInstanceBuilder<Map<String, Object>> builder = ServiceInstance.builder();
+        Optional.ofNullable(details.get("port")).ifPresent(port -> builder.port((Integer) port));
 
-      final ServiceInstance<Map<String, Object>> serviceInstance = builder
-         .id((String) details.get("id"))
-         .name((String) details.get("name"))
-         .payload(details)
-         .uriSpec(new UriSpec("http://{address}:{port}"))
-         .build();
+        final ServiceInstance<Map<String, Object>> serviceInstance = builder
+                .id((String) details.get("id"))
+                .name((String) details.get("name"))
+                .payload(details)
+                .uriSpec(new UriSpec("http://{address}:{port}"))
+                .build();
 
-      serviceDiscovery.registerService(serviceInstance);
+        serviceDiscovery.registerService(serviceInstance);
 
-      return serviceInstance;
-   }
+        return serviceInstance;
+    }
 
-   private Integer getServicePort(EmbeddedWebApplicationContext webContext)
-   {
-      Integer port = null;
-      if (webContext != null)
-      {
-         final EmbeddedServletContainer container = webContext.getEmbeddedServletContainer();
+    private Integer getServicePort(EmbeddedWebApplicationContext webContext) {
+        Integer port = null;
+        if (webContext != null) {
+            final EmbeddedServletContainer container = webContext.getEmbeddedServletContainer();
 
-         if (container instanceof TomcatEmbeddedServletContainer)
-         {
-            // Work around an issue with the tomcat container, which uses the local port
-            // as the port (-1) instead of the registered port
-            port = ((TomcatEmbeddedServletContainer) container).getTomcat().getConnector().getPort();
-         }
-         else
-         {
-            port = container.getPort();
-         }
-      }
-      return port;
-   }
+            if (container instanceof TomcatEmbeddedServletContainer) {
+                // Work around an issue with the tomcat container, which uses the local port
+                // as the port (-1) instead of the registered port
+                port = ((TomcatEmbeddedServletContainer) container).getTomcat().getConnector().getPort();
+            } else {
+                port = container.getPort();
+            }
+        }
+        return port;
+    }
 }

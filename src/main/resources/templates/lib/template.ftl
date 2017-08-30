@@ -3,23 +3,23 @@
 <html>
 <head>
     <title>Kafdrop: ${title}</title>
-    <link type="text/css" rel="stylesheet" href="/css/baseless.min.css"/>
-    <link type="text/css" rel="stylesheet" href="/css/font-awesome.min.css"/>
-    <link type="text/css" rel="stylesheet" href="/css/global.css"/>
+    <link type="text/css" rel="stylesheet" href="/kafdrop/css/baseless.min.css"/>
+    <link type="text/css" rel="stylesheet" href="/kafdrop/css/font-awesome.min.css"/>
+    <link type="text/css" rel="stylesheet" href="/kafdrop/css/global.css"/>
 
-    <script src="/js/jquery.min.js"></script>
-    <script src="/js/global.js"></script>
+    <script src="/kafdrop/js/jquery.min.js"></script>
+    <script src="/kafdrop/js/global.js"></script>
 
     <#nested>
 </head>
 <body>
-   <#include "/includes/header.ftl">
+    <#include "/includes/header.ftl">
 <div class="container">
 </#macro>
 
 <#macro footer>
 </div>
-   <#nested>
+    <#nested>
 </body>
 </html>
 </#macro>
@@ -29,5 +29,5 @@
 </#macro>
 
 <#macro yn value>
-   <#if value>Yes<#else>No</#if>
+    <#if value>Yes<#else>No</#if>
 </#macro>
