@@ -12,7 +12,7 @@
 
 <div id="action-bar">
     <a class="bs-btn info" href="/kafdrop/topic/${topic.name}/messages"><i class="fa fa-eye"></i> View Messages</a>
-    <a class="bs-btn info" href="/kafdrop/topic/${topic.name}/delete"><i class="fa fa-remove"></i> Delete Topic</a>
+    <a class="bs-btn info" href="/kafdrop/topic/${topic.name}/delete" onclick="return confirm('Are you sure?')"><i class="fa fa-remove"></i> Delete Topic</a>
 </div>
 
 <div class="row">
