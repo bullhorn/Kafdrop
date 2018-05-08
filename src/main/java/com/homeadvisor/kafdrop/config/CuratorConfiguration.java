@@ -27,6 +27,7 @@ import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.RetryNTimes;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.actuate.health.AbstractHealthIndicator;
 import org.springframework.boot.actuate.health.Health;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -36,11 +37,13 @@ import org.springframework.stereotype.Component;
 
 @Configuration
 public class CuratorConfiguration {
+    @Value("${zookeeper}")
+    private String zookeeper;
+
     @Bean(initMethod = "start", destroyMethod = "close")
     public CuratorFramework curatorFramework(ZookeeperProperties props) {
-        //todo This is where we currently set kafdrop to look at localhost for the kafka cluster to monitor
         return CuratorFrameworkFactory.builder()
-                .connectString("localhost:2181")
+                .connectString(zookeeper)
                 .connectionTimeoutMs(props.getConnectTimeoutMillis())
                 .sessionTimeoutMs(props.getSessionTimeoutMillis())
                 .retryPolicy(new RetryNTimes(props.getMaxRetries(), props.getRetryMillis()))
@@ -50,6 +53,9 @@ public class CuratorConfiguration {
     @Component
     @ConfigurationProperties(prefix = "zookeeper")
     public static class ZookeeperProperties {
+        @Value("${zookeeper}")
+        private String zookeeper;
+
         public static final Pattern CONNECT_SEPARATOR = Pattern.compile("\\s*,\\s*");
         //      @NotBlank
         private String connect;
@@ -62,7 +68,7 @@ public class CuratorConfiguration {
 
 
         public String getConnect() {
-            return "localhost:2181";
+            return zookeeper;
         }
 
         public void setConnect(String connect) {
