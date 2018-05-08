@@ -18,15 +18,10 @@
 
 package com.homeadvisor.kafdrop.controller;
 
-import com.homeadvisor.kafdrop.model.ConsumerVO;
-import com.homeadvisor.kafdrop.model.TopicVO;
-import com.homeadvisor.kafdrop.service.ConsumerNotFoundException;
-import com.homeadvisor.kafdrop.service.KafkaMonitor;
-import com.homeadvisor.kafdrop.service.TopicNotFoundException;
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiResponse;
-import io.swagger.annotations.ApiResponses;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Controller;
@@ -36,8 +31,15 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import java.util.List;
-import java.util.stream.Collectors;
+import com.homeadvisor.kafdrop.model.ConsumerVO;
+import com.homeadvisor.kafdrop.model.TopicVO;
+import com.homeadvisor.kafdrop.service.ConsumerNotFoundException;
+import com.homeadvisor.kafdrop.service.KafkaMonitor;
+import com.homeadvisor.kafdrop.service.TopicNotFoundException;
+
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
 
 @Controller
 @RequestMapping("/topic")
@@ -55,6 +57,14 @@ public class TopicController
       model.addAttribute("consumers", kafkaMonitor.getConsumers(topic));
 
       return "topic-detail";
+   }
+
+    @RequestMapping("/{name:.+}/delete")
+   public String deleteTopic(@PathVariable("name") String topicName, Model model)
+   {
+      final Optional<TopicVO> topic = kafkaMonitor.deleteTopic(topicName);
+
+       return "redirect:/";
    }
 
    @ApiOperation(value = "getTopic", notes = "Get partition and consumer details for a topic")

@@ -18,12 +18,12 @@
 
 package com.homeadvisor.kafdrop.service;
 
+import java.util.List;
+import java.util.Optional;
+
 import com.homeadvisor.kafdrop.model.BrokerVO;
 import com.homeadvisor.kafdrop.model.ConsumerVO;
 import com.homeadvisor.kafdrop.model.TopicVO;
-
-import java.util.List;
-import java.util.Optional;
 
 public interface KafkaMonitor
 {
@@ -35,6 +35,8 @@ public interface KafkaMonitor
    List<TopicVO> getTopics();
 
    Optional<TopicVO> getTopic(String topic);
+
+   Optional<TopicVO> deleteTopic(String topic);
 
    List<ConsumerVO> getConsumers();
 
